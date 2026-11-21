@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Song ISRC Finder</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+<style>
+:root{--bg1:#0b1020;--bg2:#1a1040;--bg3:#0e2a3a;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.12);--tx:#eef1ff;--mu:#9aa3c7;--ac:#7c5cff;--ac2:#22d3ee;--ok:#34d399;--er:#f87171;--wa:#fbbf24}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100vh;color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3)) fixed;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+body:before{content:"";position:fixed;inset:0;background:radial-gradient(600px 400px at 15% 10%,rgba(124,92,255,.25),transparent),radial-gradient(500px 400px at 90% 80%,rgba(34,211,238,.18),transparent);pointer-events:none}
+.wrap{position:relative;max-width:820px;margin:0 auto;padding:40px 18px 60px}
+header{text-align:center;margin-bottom:28px}
+.logo{font-size:44px}
+h1{margin:6px 0;font-size:clamp(28px,6vw,42px);letter-spacing:-.5px;background:linear-gradient(90deg,#fff,var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{margin:0;color:var(--mu)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;backdrop-filter:blur(12px);margin-bottom:20px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text],input[type=url]{flex:1 1 280px;min-width:0;padding:18px 18px;font-size:17px;color:var(--tx);background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:14px;outline:none}
+input:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(124,92,255,.3)}
+button{font:inherit;cursor:pointer;border:0;color:#fff;border-radius:14px;transition:transform .12s,opacity .2s}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.go{padding:18px 28px;font-weight:700;background:linear-gradient(90deg,var(--ac),var(--ac2));flex:0 0 auto}
+.hint{margin:10px 2px 0;font-size:13px;color:var(--mu)}
+.hidden{display:none!important}
+/* loading */
+.loader{text-align:center;padding:34px 10px}
+.eq{display:flex;gap:5px;justify-content:center;align-items:flex-end;height:46px;margin-bottom:18px}
+.eq i{width:7px;border-radius:4px;background:linear-gradient(var(--ac2),var(--ac));animation:eq 1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:.15s}.eq i:nth-child(3){animation-delay:.3s}.eq i:nth-child(4){animation-delay:.45s}.eq i:nth-child(5){animation-delay:.6s}
+@keyframes eq{0%,100%{height:10px}50%{height:44px}}
+.msg{font-size:19px;font-weight:600;min-height:30px}
+.bar{height:8px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin:18px auto 0;max-width:420px}
+.bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:99px;transition:width .8s ease;position:relative;overflow:hidden}
+.bar b:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:sh 1.3s infinite}
+@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.done .eq{display:none}.done .msg{color:var(--ok)}
+/* result */
+.res{border:1px solid rgba(124,92,255,.5);background:linear-gradient(160deg,rgba(124,92,255,.18),rgba(34,211,238,.08))}
+.lbl{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu);margin-top:14px}
+.val{font-size:19px;font-weight:600;word-break:break-word}
+.code{margin:8px 0 18px;padding:18px;text-align:center;font:700 clamp(26px,7vw,40px)/1.1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:3px;background:rgba(0,0,0,.4);border:1px dashed var(--ac2);border-radius:16px;color:var(--ac2);user-select:all;word-break:break-all}
+.copy{width:100%;padding:20px;font-size:19px;font-weight:800;background:linear-gradient(90deg,var(--ac),var(--ac2));margin-bottom:10px}
+.copy2{width:100%;padding:14px;font-weight:600;background:rgba(255,255,255,.1);border:1px solid var(--line)}
+.copied{background:var(--ok)!important;color:#05241a}
+.badge{display:inline-block;font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(52,211,153,.15);color:var(--ok);margin-bottom:6px}
+/* error */
+.err{border:1px solid rgba(248,113,113,.5);background:rgba(248,113,113,.08)}
+.err h3{margin:0 0 6px;color:var(--er)}.err.warn{border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.08)}.err.warn h3{color:var(--wa)}
+.err p{margin:0;color:var(--mu)}
+.mlist{margin-top:14px;display:grid;gap:8px}
+.mi{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.3);border:1px solid var(--line);font-family:ui-monospace,Menlo,Consolas,monospace}
+.mi button{padding:6px 12px;background:var(--ac);font-size:13px}
+/* history */
+.hh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.hh h2{margin:0;font-size:18px}
+.clr{padding:7px 14px;background:rgba(248,113,113,.15);color:var(--er);font-size:13px;border:1px solid rgba(248,113,113,.3)}
+.hi{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid var(--line);margin-bottom:8px}
+.hi .t{min-width:0}.hi .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hi .t small{color:var(--mu)}
+.hi .c{font:600 14px ui-monospace,Menlo,Consolas,monospace;color:var(--ac2);cursor:pointer;white-space:nowrap;background:none;padding:6px 10px;border:1px solid var(--line)}
+.empty{color:var(--mu);text-align:center;padding:10px}
+details{color:var(--mu);font-size:14px}summary{cursor:pointer}
+details input{width:100%;margin-top:10px;padding:12px;font-size:14px}
+.foot{text-align:center;color:var(--mu);font-size:12px;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🎵</div>
+    <h1>Song ISRC Finder</h1>
+    <p>Paste a Spotify song link and get its ISRC code.</p>
+  </header>
+
+  <section class="panel">
+    <div class="row">
+      <input id="url" type="url" inputmode="url" autocomplete="off" placeholder="https://open.spotify.com/track/…">
+      <button id="go" class="go">Find ISRC</button>
+    </div>
+    <p class="hint">Accepted: Spotify song links (open.spotify.com/track/…). Results come straight from isrcfinder.com — nothing is ever guessed.</p>
+  </section>
+
+  <section id="loading" class="panel loader hidden">
+    <div class="eq"><i></i><i></i><i></i><i></i><i></i></div>
+    <div id="msg" class="msg"></div>
+    <div class="bar"><b id="pb"></b></div>
+  </section>
+
+  <section id="out"></section>
+
+  <section class="panel">
+    <div class="hh"><h2>Search history</h2><button id="clr" class="clr">Clear history</button></div>
+    <div id="hist"></div>
+  </section>
+
+  <section class="panel">
+    <details>
+      <summary>Backend settings</summary>
+      <p>Browsers can’t automate another website on their own, so this page talks to the small Playwright server (<code>server.js</code>). Enter its address if it isn’t on the same domain as this page.</p>
+      <input id="api" type="url" placeholder="https://your-backend.onrender.com">
+    </details>
+  </section>
+  <div class="foot">Independent tool. Not affiliated with Spotify or isrcfinder.com. Always verify the ISRC before registering it.</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const STAGES=[["Connecting to ISRC Finder…",8],["Submitting Song URL…",25],["Searching Song Information…",48],["Finding ISRC Code…",70],["Processing Search Results…",90]];
+const ERRORS={
+  INVALID_URL:["Invalid song URL","Please paste a Spotify song link, e.g. https://open.spotify.com/track/…"],
+  NOT_FOUND:["Song not found","ISRC Finder couldn’t find this song. Check the link and try again."],
+  NO_ISRC:["No ISRC available","The song was found, but no ISRC is listed for it."],
+  SITE_UNAVAILABLE:["Website unavailable","ISRC Finder isn’t responding or is asking for a human check. Please try again later."],
+  NETWORK:["Network connection failure","Couldn’t reach the backend. Check your internet connection and the backend address below."],
+  TIMEOUT:["Search timeout","The search took too long. Please try again."],
+  MULTIPLE:["Multiple matching recordings","More than one ISRC was returned. Pick the one that matches your recording."],
+  NO_BACKEND:["Backend not configured","Open “Backend settings” at the bottom and enter your server address."],
+  UNKNOWN:["Something went wrong","Unexpected response. Please try again."]
+};
+const TRACK=/^(https?:\/\/open\.spotify\.com\/(intl-[a-z]{2,}\/)?track\/[A-Za-z0-9]{22})([/?#].*)?$/i;
+const ISRC=/^[A-Z]{2}[A-Z0-9]{3}\d{2}\d{5}$/;
+let timer=null,busy=false;
+
+function apiBase(){
+  const s=localStorage.getItem("isrc_api");
+  if(s)return s.replace(/\/+$/,"");
+  return location.hostname.endsWith("github.io")||location.protocol==="file:"?"":location.origin;
+}
+function esc(s){const d=document.createElement("div");d.textContent=s==null?"":String(s);return d.innerHTML}
+function normalize(u){u=u.trim();const m=u.match(/^spotify:track:([A-Za-z0-9]{22})$/);if(m)u="https://open.spotify.com/track/"+m[1];const t=u.match(TRACK);return t?t[1]:null}
+
+function startLoading(){
+  $("out").innerHTML="";$("loading").classList.remove("hidden","done");
+  let i=0;const step=()=>{const s=STAGES[Math.min(i,STAGES.length-1)];$("msg").textContent=s[0];$("pb").style.width=s[1]+"%";i++};
+  step();timer=setInterval(step,2600);
+}
+function stopLoading(){clearInterval(timer);$("loading").classList.add("hidden")}
+function flashDone(){
+  clearInterval(timer);const l=$("loading");l.classList.add("done");
+  $("msg").textContent="ISRC Code Found Successfully!";$("pb").style.width="100%";
+  return new Promise(r=>setTimeout(r,900));
+}
+
+async function search(raw){
+  if(busy)return;
+  const url=normalize(raw);
+  if(!url)return showError("INVALID_URL");
+  const base=apiBase();
+  if(!base)return showError("NO_BACKEND");
+  busy=true;$("go").disabled=true;startLoading();
+  const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),75000);
+  try{
+    const r=await fetch(base+"/api/isrc",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url}),signal:ctl.signal});
+    let d;try{d=await r.json()}catch(e){d=null}
+    if(d&&d.ok&&ISRC.test(d.isrc||"")){
+      await flashDone();stopLoading();
+      const rec={song:d.song||"Unknown title",artist:d.artist||"Unknown artist",isrc:d.isrc,url,time:Date.now()};
+      saveHistory(rec);showResult(rec);
+    }else{
+      stopLoading();showError(d&&d.code||"UNKNOWN",d);
+    }
+  }catch(e){
+    stopLoading();showError(e.name==="AbortError"?"TIMEOUT":"NETWORK");
+  }finally{clearTimeout(to);busy=false;$("go").disabled=false}
+}
+
+function showError(code,d){
+  const e=ERRORS[code]||ERRORS.UNKNOWN;
+  let extra="";
+  if(code==="MULTIPLE"&&d&&Array.isArray(d.matches)){
+    const ok=d.matches.filter(m=>ISRC.test(m.isrc||""));
+    extra='<div class="mlist">'+ok.map(m=>'<div class="mi"><span>'+esc(m.isrc)+(m.label?" · "+esc(m.label):"")+'</span><button data-pick="'+esc(m.isrc)+'" data-label="'+esc(m.label||"")+'">Use this</button></div>').join("")+"</div>";
+  }
+  $("out").innerHTML='<div class="panel err '+(code==="MULTIPLE"?"warn":"")+'"><h3>'+esc(e[0])+"</h3><p>"+esc(e[1])+"</p>"+extra+"</div>";
+  $("out").querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{
+    const rec={song:b.dataset.label||"Selected recording",artist:"—",isrc:b.dataset.pick,url:$("url").value,time:Date.now()};
+    saveHistory(rec);showResult(rec);
+  });
+}
+
+function showResult(r){
+  $("out").innerHTML='<div class="panel res"><span class="badge">● Found</span>'+
+   '<div class="lbl">Song</div><div class="val">'+esc(r.song)+'</div>'+
+   '<div class="lbl">Artist</div><div class="val">'+esc(r.artist)+'</div>'+
+   '<div class="lbl">ISRC code</div><div class="code">'+esc(r.isrc)+'</div>'+
+   '<button class="copy" id="c1">COPY ISRC</button>'+
+   '<button class="copy2" id="c2">Copy formatted (ISRC:'+esc(r.isrc)+')</button></div>';
+  $("c1").onclick=e=>copy(r.isrc,e.target,"COPY ISRC");
+  $("c2").onclick=e=>copy("ISRC:"+r.isrc,e.target,"Copy formatted (ISRC:"+r.isrc+")");
+  $("out").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+async function copy(text,btn,orig){
+  try{await navigator.clipboard.writeText(text)}
+  catch(e){const t=document.createElement("textarea");t.value=text;t.style.position="fixed";t.style.opacity="0";document.body.appendChild(t);t.select();try{document.execCommand("copy")}catch(_){}t.remove()}
+  btn.textContent="✓ Copied: "+text;btn.classList.add("copied");
+  setTimeout(()=>{btn.textContent=orig;btn.classList.remove("copied")},1800);
+}
+
+function getHistory(){try{return JSON.parse(localStorage.getItem("isrc_hist")||"[]")}catch(e){return[]}}
+function saveHistory(r){
+  let h=getHistory().filter(x=>x.isrc!==r.isrc);h.unshift(r);h=h.slice(0,25);
+  try{localStorage.setItem("isrc_hist",JSON.stringify(h))}catch(e){}
+  renderHistory();
+}
+function renderHistory(){
+  const h=getHistory();
+  $("clr").classList.toggle("hidden",!h.length);
+  $("hist").innerHTML=h.length?h.map((x,i)=>'<div class="hi"><div class="t"><b>'+esc(x.song)+'</b><small>'+esc(x.artist)+" · "+new Date(x.time).toLocaleString()+'</small></div><button class="c" data-i="'+i+'" title="Click to view">'+esc(x.isrc)+'</button></div>').join(""):'<div class="empty">No searches yet.</div>';
+  $("hist").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>showResult(h[+b.dataset.i]));
+}
+
+$("go").onclick=()=>search($("url").value);
+$("url").addEventListener("keydown",e=>{if(e.key==="Enter")search($("url").value)});
+$("clr").onclick=()=>{if(confirm("Clear all search history?")){localStorage.removeItem("isrc_hist");renderHistory()}};
+$("api").value=localStorage.getItem("isrc_api")||"";
+$("api").onchange=e=>{const v=e.target.value.trim();v?localStorage.setItem("isrc_api",v):localStorage.removeItem("isrc_api")};
+renderHistory();
+})();
+</script>
+</body>
+</html>
